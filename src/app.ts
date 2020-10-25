@@ -7,12 +7,7 @@ client.on("ready", () => {});
 
 client.on("raw" as any, async (packet) => {
   try {
-    if (
-      !(
-        packet.t === "MESSAGE_REACTION_ADD" ||
-        packet.t === "MESSAGE_REACTION_REMOVE"
-      )
-    ) {
+    if (packet.t !== "MESSAGE_REACTION_ADD") {
       return;
     }
 
@@ -25,7 +20,7 @@ client.on("raw" as any, async (packet) => {
       user_id: string;
     } = packet.d;
 
-    if (!(data.emoji.name === "pin" || data.emoji.name === "unpin")) {
+    if (data.emoji.name !== "pin") {
       return;
     }
 
@@ -37,25 +32,23 @@ client.on("raw" as any, async (packet) => {
 
     const message = await channel.messages.fetch(data.message_id);
 
-    const unpinReaction = message.reactions.cache
+    const pinReaction = message.reactions.cache
       .array()
-      .find((reaction) => reaction.emoji.name === "unpin");
+      .find((reaction) => reaction.emoji.name === "pin");
 
-    const unpin =
-      unpinReaction !== undefined &&
-      (await unpinReaction.fetch()).users.resolveID(message.author) !== null;
-
-    if (data.emoji.name === "pin" && !unpin && !message.pinned) {
-      await message.pin();
+    if (pinReaction === undefined) {
       return;
     }
 
-    if (unpin && message.pinned) {
-      await message.unpin();
-      return;
+    if (
+      pinReaction.count !== null &&
+      pinReaction.count >= 3 &&
+      !message.pinned
+    ) {
+      await message.pin();
     }
   } catch (e) {
-    console.error(e);
+    console.log(e);
   }
 });
 
